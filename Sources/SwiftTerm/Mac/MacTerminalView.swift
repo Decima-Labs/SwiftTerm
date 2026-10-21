@@ -3486,6 +3486,20 @@ open class TerminalView: NSView, NSUserInterfaceValidations, TerminalDelegate {
         return terminal.encodeButton(button: button, release: isReleaseEvent, shift: flags.contains(.shift), meta: flags.contains(.option), control: flags.contains(.control))
     }
     
+    /// The link under `point`, in the view's coordinates, as a Command-click there opens it: an
+    /// OSC 8 hyperlink's address, else a link found in the text. Nil when there is none. It needs
+    /// no hover first, so a host can say where a link goes before it's clicked, or offer a menu.
+    public func linkForCommandClick(at point: CGPoint) -> String? {
+        withTerminal { terminal in
+            let position = calculateMouseHitLocked(at: point).grid
+            guard let match = terminal.linkMatch(at: .buffer(position), mode: .explicitAndImplicit) else { return nil }
+            if match.isExplicit, let payload = payloadStringLocked(at: position), let (url, _) = urlAndParamsFrom(payload: payload) {
+                return url
+            }
+            return match.text
+        }
+    }
+
     func calculateMouseHit (with event: NSEvent) -> (grid: Position, pixels: Position)
     {
         let point = convert(event.locationInWindow, from: nil)
